@@ -42,17 +42,27 @@
   <!-- Babel for parsing JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Firebase Compat Libraries (Error-Free CDN approach for pure HTML) -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+  <!-- Modern Firebase Modular Import Map (Error-Free API) -->
+  <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js"
+      }
+    }
+  </script>
 </head>
 <body>
   <div id="root"></div>
 
   <!-- Main App Script -->
-  <script type="text/babel">
+  <script type="text/babel" data-type="module">
     const { useEffect, useRef, useState } = React;
+
+    import { initializeApp } from 'firebase/app';
+    import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
+    import { getFirestore, collection, doc, setDoc, onSnapshot, updateDoc, addDoc, deleteDoc } from 'firebase/firestore';
 
     // =====================================
     // ICONS
@@ -67,7 +77,7 @@
     const TikTok = ({ className, strokeWidth }) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth || 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>;
 
     // =====================================
-    // FIREBASE INITIALIZATION (Compat API)
+    // FIREBASE INITIALIZATION
     // =====================================
     const firebaseConfig = typeof __firebase_config !== 'undefined' 
       ? JSON.parse(__firebase_config) 
@@ -80,13 +90,9 @@
           appId: "1:79350904129:web:895ef946667e126d29ddc0"
         };
 
-    // Initialize Firebase if not already initialized
-    if (!firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-    }
-    
-    const auth = firebase.auth();
-    const db = firebase.firestore();
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
     const globalAppId = typeof __app_id !== 'undefined' ? __app_id : 'versus-ideation-engine';
 
     // =====================================
@@ -153,19 +159,16 @@
           }`}
         >
           <div className="max-w-[1600px] mx-auto px-6 w-full flex items-center justify-between">
-            {/* Left: Menu */}
             <div className="flex-1 flex items-center">
               <Menu className="w-7 h-7 text-black cursor-pointer hover:opacity-70 transition-opacity" strokeWidth={1.5} />
             </div>
 
-            {/* Center: Logo */}
             <div className="flex-1 flex justify-center">
               <span className="font-oswald text-4xl md:text-5xl uppercase tracking-tight text-black font-semibold mt-1">
                 VERSUS
               </span>
             </div>
 
-            {/* Right: Socials & Search */}
             <div className="flex-1 flex items-center justify-end gap-5">
               <div className="hidden md:flex items-center gap-5">
                 <a href="https://x.com/vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><XIcon className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
@@ -365,25 +368,29 @@
     const IdeationEngine = ({ user }) => {
       const sectionRef = useRef(null);
       const [categories, setCategories] = useState([]);
+      const [loading, setLoading] = useState(true);
 
       useEffect(() => {
         if (!user) return;
-        const catsRef = db.collection('artifacts/' + globalAppId + '/public/data/categories');
+        const catsRef = collection(db, 'artifacts', globalAppId, 'public', 'data', 'categories');
         
-        const unsubscribe = catsRef.onSnapshot((snapshot) => {
+        const unsubscribe = onSnapshot(catsRef, (snapshot) => {
           if (snapshot.empty) {
             IDEATION_CATEGORIES.forEach(cat => {
-              catsRef.doc(cat.id).set(cat).catch(console.error);
+              setDoc(doc(catsRef, cat.id), cat).catch(console.error);
             });
+            // Let the local write trigger the next snapshot to remove loading state
           } else {
             const fetchedCats = [];
             snapshot.forEach(d => fetchedCats.push({ ...d.data(), firestoreId: d.id }));
             const order = ['talent', 'vox-pop', 'video-essay'];
             fetchedCats.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
             setCategories(fetchedCats);
+            setLoading(false);
           }
         }, (error) => {
           console.error("Firestore Category Sync Error:", error);
+          setLoading(false);
         });
 
         return () => unsubscribe();
@@ -407,7 +414,7 @@
         
         const updatedIdeas = [...cat.ideas, newIdea];
         try {
-          await db.collection('artifacts/' + globalAppId + '/public/data/categories').doc(categoryId).update({ ideas: updatedIdeas });
+          await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'categories', categoryId), { ideas: updatedIdeas });
         } catch (err) {
           console.error("Failed to add idea", err);
         }
@@ -419,7 +426,7 @@
         
         const updatedIdeas = cat.ideas.map(idea => idea.id === ideaId ? { ...idea, ...updatedData } : idea);
         try {
-          await db.collection('artifacts/' + globalAppId + '/public/data/categories').doc(categoryId).update({ ideas: updatedIdeas });
+          await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'categories', categoryId), { ideas: updatedIdeas });
         } catch (err) {
           console.error("Failed to update idea", err);
         }
@@ -431,14 +438,14 @@
         
         const updatedIdeas = cat.ideas.filter(idea => idea.id !== ideaId);
         try {
-          await db.collection('artifacts/' + globalAppId + '/public/data/categories').doc(categoryId).update({ ideas: updatedIdeas });
+          await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'categories', categoryId), { ideas: updatedIdeas });
         } catch (err) {
           console.error("Failed to delete idea", err);
         }
       };
 
       return (
-        <section id="ideation" ref={sectionRef} className="py-24 px-6 md:px-12 max-w-[1600px] mx-auto bg-white border-t border-black">
+        <section id="ideation" ref={sectionRef} className="py-24 px-6 md:px-12 max-w-[1600px] mx-auto bg-white border-t border-black min-h-[50vh]">
           <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
                 <p className="font-inter text-[11px] font-bold text-black uppercase tracking-widest mb-4">Workspace</p>
@@ -450,38 +457,42 @@
             </div>
           </div>
 
-          <div className="flex flex-col gap-24">
-            {categories.map((category) => (
-              <div key={category.id} className="flex flex-col gap-8">
-                <h4 className="font-oswald text-3xl uppercase tracking-wide text-black border-b-2 border-black pb-4 inline-block w-fit pr-12">{category.title}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
-                  {category.ideas.map((idea) => (
-                    <IdeaCard
-                      key={idea.id}
-                      idea={idea}
-                      onUpdate={(id, data) => handleUpdateIdea(category.id, id, data)}
-                      onDelete={(id) => handleDeleteIdea(category.id, id)}
-                    />
-                  ))}
-                  <div
-                    onClick={() => handleAddNewIdea(category.id)}
-                    className="h-full min-h-[200px] border border-dashed border-gray-300 rounded-[20px] flex flex-col items-center justify-center text-gray-400 hover:text-black hover:border-black hover:bg-gray-50 transition-all cursor-pointer group"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-gray-50 group-hover:bg-gray-200 flex items-center justify-center mb-4 transition-colors">
-                        <span className="text-2xl font-light">+</span>
+          {loading ? (
+             <div className="w-full flex items-center justify-center py-24 text-gray-400 font-inter text-sm uppercase tracking-widest font-bold">Loading Vault...</div>
+          ) : (
+            <div className="flex flex-col gap-24">
+              {categories.map((category) => (
+                <div key={category.id} className="flex flex-col gap-8">
+                  <h4 className="font-oswald text-3xl uppercase tracking-wide text-black border-b-2 border-black pb-4 inline-block w-fit pr-12">{category.title}</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
+                    {category.ideas.map((idea) => (
+                      <IdeaCard
+                        key={idea.id}
+                        idea={idea}
+                        onUpdate={(id, data) => handleUpdateIdea(category.id, id, data)}
+                        onDelete={(id) => handleDeleteIdea(category.id, id)}
+                      />
+                    ))}
+                    <div
+                      onClick={() => handleAddNewIdea(category.id)}
+                      className="h-full min-h-[200px] border border-dashed border-gray-300 rounded-[20px] flex flex-col items-center justify-center text-gray-400 hover:text-black hover:border-black hover:bg-gray-50 transition-all cursor-pointer group"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-gray-50 group-hover:bg-gray-200 flex items-center justify-center mb-4 transition-colors">
+                          <span className="text-2xl font-light">+</span>
+                      </div>
+                      <span className="font-inter text-[11px] font-bold uppercase tracking-widest">New Idea</span>
                     </div>
-                    <span className="font-inter text-[11px] font-bold uppercase tracking-widest">New Idea</span>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
       );
     };
 
     // =====================================
-    // LIVE ARCHIVE (Refined Database)
+    // LIVE ARCHIVE
     // =====================================
     const LiveArchiveCard = ({ video, onDelete, onUpdate }) => {
       const [isEditing, setIsEditing] = useState(false);
@@ -526,7 +537,6 @@
         try {
           if (!url || !url.includes('instagram.com')) return null;
           const match = url.match(/(?:p|reel)\/([A-Za-z0-9_-]+)/);
-          // Using just /embed avoids the bulky caption on the left side
           if (match) return `https://www.instagram.com/p/${match[1]}/embed`;
           return null;
         } catch {
@@ -555,7 +565,7 @@
                     <img src={formData.mediaUrl} alt="Thumbnail" className="w-full h-full object-cover" />
                   )
                 ) : igEmbedUrl ? (
-                  <iframe src={igEmbedUrl} width="100%" height="100%" frameBorder="0" scrolling="no" allowtransparency="true" className="w-full h-full" />
+                  <iframe src={igEmbedUrl} width="100%" height="100%" frameBorder="0" scrolling="no" className="w-full h-full bg-white" />
                 ) : (
                   <div className="text-gray-400 flex flex-col items-center gap-3 p-6 text-center">
                     <svg className="w-8 h-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>
@@ -696,14 +706,14 @@
 
     const LiveArchive = ({ user }) => {
       const [videos, setVideos] = useState([]);
+      const [loading, setLoading] = useState(true);
 
       useEffect(() => {
         if (!user) return;
-        const videosRef = db.collection('artifacts/' + globalAppId + '/public/data/videos');
+        const videosRef = collection(db, 'artifacts', globalAppId, 'public', 'data', 'videos');
         
-        const unsubscribe = videosRef.onSnapshot((snapshot) => {
+        const unsubscribe = onSnapshot(videosRef, (snapshot) => {
           if (snapshot.empty) {
-            // New default based on your provided Instagram reel
             const defaultVideo = {
               name: 'Joy Crookes - GOAT FIFA SONG',
               caption: 'We challenged Joy Crookes to decide the GOAT EA FC song.\n\nGet your tickets to ‘Juniper Tour’ now.',
@@ -712,15 +722,17 @@
               metrics: { views: '', likes: '', comments: '', shares: '' },
               createdAt: Date.now()
             };
-            videosRef.add(defaultVideo).catch(console.error);
+            addDoc(videosRef, defaultVideo).catch(console.error);
           } else {
             const fetchedVideos = [];
             snapshot.forEach(d => fetchedVideos.push({ firestoreId: d.id, ...d.data() }));
             fetchedVideos.sort((a, b) => b.createdAt - a.createdAt);
             setVideos(fetchedVideos);
+            setLoading(false);
           }
         }, (error) => {
           console.error("Firestore Videos Sync Error:", error);
+          setLoading(false);
         });
 
         return () => unsubscribe();
@@ -736,7 +748,7 @@
           createdAt: Date.now()
         };
         try {
-          await db.collection('artifacts/' + globalAppId + '/public/data/videos').add(newVideo);
+          await addDoc(collection(db, 'artifacts', globalAppId, 'public', 'data', 'videos'), newVideo);
         } catch (err) {
           console.error("Failed to add video", err);
         }
@@ -744,7 +756,7 @@
 
       const handleDeleteVideo = async (firestoreId) => {
         try {
-          await db.collection('artifacts/' + globalAppId + '/public/data/videos').doc(firestoreId).delete();
+          await deleteDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'videos', firestoreId));
         } catch (err) {
           console.error("Failed to delete video", err);
         }
@@ -753,7 +765,7 @@
       const handleUpdateVideo = async (updatedVideo) => {
         const { firestoreId, ...data } = updatedVideo;
         try {
-          await db.collection('artifacts/' + globalAppId + '/public/data/videos').doc(firestoreId).update(data);
+          await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'videos', firestoreId), data);
         } catch (err) {
           console.error("Failed to update video", err);
         }
@@ -776,21 +788,25 @@
             </Magnetic>
           </div>
 
-          <div className="flex flex-col gap-12">
-            {videos.map((video) => (
-              <LiveArchiveCard
-                key={video.firestoreId}
-                video={video}
-                onDelete={handleDeleteVideo}
-                onUpdate={handleUpdateVideo}
-              />
-            ))}
-            {videos.length === 0 && (
-              <div className="w-full py-24 border border-dashed border-gray-300 rounded-[24px] flex flex-col items-center justify-center text-gray-500 bg-gray-50">
-                <p className="font-inter text-[11px] font-bold uppercase tracking-widest">No Archived Links. Start adding your live videos above.</p>
-              </div>
-            )}
-          </div>
+          {loading ? (
+             <div className="w-full flex items-center justify-center py-24 text-gray-400 font-inter text-sm uppercase tracking-widest font-bold">Loading Archive...</div>
+          ) : (
+            <div className="flex flex-col gap-12">
+              {videos.map((video) => (
+                <LiveArchiveCard
+                  key={video.firestoreId}
+                  video={video}
+                  onDelete={handleDeleteVideo}
+                  onUpdate={handleUpdateVideo}
+                />
+              ))}
+              {videos.length === 0 && (
+                <div className="w-full py-24 border border-dashed border-gray-300 rounded-[24px] flex flex-col items-center justify-center text-gray-500 bg-gray-50">
+                  <p className="font-inter text-[11px] font-bold uppercase tracking-widest">No Archived Links. Start adding your live videos above.</p>
+                </div>
+              )}
+            </div>
+          )}
         </section>
       );
     };
@@ -827,9 +843,9 @@
         const initAuth = async () => {
           try {
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await auth.signInWithCustomToken(__initial_auth_token);
+              await signInWithCustomToken(auth, __initial_auth_token);
             } else {
-              await auth.signInAnonymously();
+              await signInAnonymously(auth);
             }
           } catch (error) {
             console.error("Authentication Error:", error);
@@ -837,7 +853,7 @@
         };
         initAuth();
 
-        const unsubscribe = auth.onAuthStateChanged(setUser);
+        const unsubscribe = onAuthStateChanged(auth, setUser);
         return () => unsubscribe();
       }, []);
 
