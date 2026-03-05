@@ -365,7 +365,7 @@
       );
     };
 
-    const IdeationEngine = ({ user }) => {
+    const IdeationEngine = ({ user, authError }) => {
       const sectionRef = useRef(null);
       const [categories, setCategories] = useState([]);
       const [loading, setLoading] = useState(true);
@@ -451,13 +451,18 @@
                 <p className="font-inter text-[11px] font-bold text-black uppercase tracking-widest mb-4">Workspace</p>
                 <h3 className="font-inter font-bold text-4xl md:text-5xl text-black tracking-tight">The Ideation Engine</h3>
             </div>
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full py-2 px-4 w-fit">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="font-inter text-[10px] uppercase tracking-widest text-gray-600 font-bold">Live Sync</span>
+            <div className={`flex items-center gap-2 border rounded-full py-2 px-4 w-fit ${authError ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
+                <div className={`w-2 h-2 rounded-full ${authError ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`} />
+                <span className={`font-inter text-[10px] uppercase tracking-widest font-bold ${authError ? 'text-red-500' : 'text-gray-600'}`}>{authError ? 'Sync Disconnected' : 'Live Sync'}</span>
             </div>
           </div>
 
-          {loading ? (
+          {authError ? (
+             <div className="w-full flex flex-col items-center justify-center py-24 text-red-500 font-inter text-sm uppercase tracking-widest font-bold border border-red-100 rounded-[20px] bg-red-50 gap-2 p-6 text-center">
+                <span>⚠️ Database Connection Blocked</span>
+                <span className="text-[10px] text-gray-600 normal-case tracking-normal max-w-md">Your Firebase project is blocking guest access. To fix this, go to your Firebase Console > Authentication > Sign-in method, and enable the "Anonymous" provider.</span>
+             </div>
+          ) : loading ? (
              <div className="w-full flex items-center justify-center py-24 text-gray-400 font-inter text-sm uppercase tracking-widest font-bold">Loading Vault...</div>
           ) : (
             <div className="flex flex-col gap-24">
@@ -704,7 +709,7 @@
       );
     };
 
-    const LiveArchive = ({ user }) => {
+    const LiveArchive = ({ user, authError }) => {
       const [videos, setVideos] = useState([]);
       const [loading, setLoading] = useState(true);
 
@@ -788,7 +793,12 @@
             </Magnetic>
           </div>
 
-          {loading ? (
+          {authError ? (
+            <div className="w-full flex flex-col items-center justify-center py-24 text-red-500 font-inter text-sm uppercase tracking-widest font-bold border border-red-100 rounded-[20px] bg-red-50 gap-2 p-6 text-center">
+                <span>⚠️ Database Connection Blocked</span>
+                <span className="text-[10px] text-gray-600 normal-case tracking-normal max-w-md">Your Firebase project is blocking guest access. To fix this, go to your Firebase Console > Authentication > Sign-in method, and enable the "Anonymous" provider.</span>
+            </div>
+          ) : loading ? (
              <div className="w-full flex items-center justify-center py-24 text-gray-400 font-inter text-sm uppercase tracking-widest font-bold">Loading Archive...</div>
           ) : (
             <div className="flex flex-col gap-12">
@@ -838,6 +848,7 @@
 
     function App() {
       const [user, setUser] = useState(null);
+      const [authError, setAuthError] = useState(null);
 
       useEffect(() => {
         const initAuth = async () => {
@@ -849,6 +860,7 @@
             }
           } catch (error) {
             console.error("Authentication Error:", error);
+            setAuthError(error.message);
           }
         };
         initAuth();
@@ -861,8 +873,8 @@
         <main className="min-h-screen bg-white relative selection:bg-black selection:text-white">
           <Navbar />
           <Hero />
-          <IdeationEngine user={user} />
-          <LiveArchive user={user} />
+          <IdeationEngine user={user} authError={authError} />
+          <LiveArchive user={user} authError={authError} />
           <Footer />
         </main>
       );
