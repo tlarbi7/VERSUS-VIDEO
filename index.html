@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>VERSUS Ideation Engine</title>
+  <title>VERSUS Workspace</title>
 
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -29,20 +29,23 @@
     .font-oswald { font-family: 'Oswald', sans-serif; }
     .font-inter { font-family: 'Inter', sans-serif; }
     
-    /* Clean up global scrollbar for editorial look */
     ::-webkit-scrollbar { width: 8px; }
     ::-webkit-scrollbar-track { background: #fff; }
     ::-webkit-scrollbar-thumb { background: #000; }
+
+    /* Custom Animations for Modals */
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+    .animate-scale-in { animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   </style>
 
   <!-- React & ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  
-  <!-- Babel for parsing JSX -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <!-- Modern Firebase Modular Import Map (Error-Free API) -->
+  <!-- Modern Firebase Modular Import Map -->
   <script type="importmap">
     {
       "imports": {
@@ -79,6 +82,7 @@
     // =====================================
     // FIREBASE INITIALIZATION
     // =====================================
+    // ⚠️ IMPORTANT: To sync edits across devices on Netlify, replace the object below with your OWN Firebase Config.
     const firebaseConfig = typeof __firebase_config !== 'undefined' 
       ? JSON.parse(__firebase_config) 
       : {
@@ -93,25 +97,20 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const globalAppId = typeof __app_id !== 'undefined' ? __app_id : 'versus-ideation-engine';
+    const globalAppId = typeof __app_id !== 'undefined' ? __app_id : 'versus-workspace';
 
     // =====================================
-    // DEFAULT DATA
+    // DEFAULT DATA (Loaded Instantly)
     // =====================================
-    const IDEATION_CATEGORIES = [
+    const INITIAL_CATEGORIES = [
       {
         id: 'talent',
         title: 'Talent Video Ideas',
         ideas: [
           { id: 't1', title: "What's The Score?", pillar: "Football / Music", desc: "If their life was a movie - what song would soundtrack the key moments?", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
-          { id: 't8', title: "Woke Up Thinking About", pillar: "Football / Nostalgia", desc: "Quickfire trivia test asking players to name niche lost-file players in 60s.", notes: '', narrative: "Testing people's ball knowledge of iconic and WUTA players, this can be done in the street via vox pops but also in a studio. We choose some of the coldest eras of players in case that person has serious ball knowledge and can tell us more.\n\nThe interviewee watches a photo that slowly pans out on an iPad that reveals an iconic aesthetic/WUTA player (i.e.: 2012 Bale wearing Spurs kit and F50)", approval: 'Pending', script: '', status: 'Concept' },
-          { id: 'n1', title: "Versus Does Versus", pillar: "Football / Culture", desc: "Quick, repeatable format under 1 min replacing '20 questions'. Rapid-fire 'this vs that' for high audience retention.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
-          { id: 'n2', title: "Versus Firsts", pillar: "Football / Culture", desc: "Asking talent about their 'firsts' (first pair of boots, first match, first album bought, etc).", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
-          { id: 'n3', title: "Streets Are Saying", pillar: "Football / Culture", desc: "Reacting to popular opinions or rumors circulating in the culture and football space.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
-          { id: 'n4', title: "Five Aside", pillar: "Culture / Music / Fashion", desc: "We ask the talent one question from each of these VERSUS buckets (music, culture, fashion, food, football/gaming)", notes: "Example Qs\n\nWhat meal would you eat everyday if you could\n\nIf you were the Admin, what song would you post yourself with\n\nThe greatest jersey of all time is...\n\nName the first random baller that comes\n\nto mind (WUTA)\n\nWhy the gold jacket (Amad)", narrative: '', approval: 'Pending', script: '', status: 'Concept' },
-          { id: 'n5', title: "Rate the Fit", pillar: "Football / Fashion", desc: "Adapting existing content to rate outfits of players arriving at matches or events.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
-          { id: 'n6', title: "Ball Knowledge", pillar: "Football / Trivia", desc: "Interactive format testing the football trivia knowledge of talent or fans.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
-          { id: 'n7', title: "Screen Time", pillar: "Football / Culture", desc: "Players are chronically online, but we only get to see the sanitised versions of their online selves. We ask the questions every fan wants to know about how they really exist on the internet.", notes: "What's your screen time?\nHow many unread texts do you have?\nLast video in your camera roll?\nWhat's your most used emoji?\nWhat's your most used app?\nWhat's on your FYP?\nWho is your most famous contact?\nWhen was the last time you text your mum?\nWho did you send your last DM to?", narrative: '', approval: 'Pending', script: '', status: 'Concept' }
+          { id: 't8', title: "Woke Up Thinking About", pillar: "Football / Nostalgia", desc: "Quickfire trivia test asking players to name niche lost-file players.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
+          { id: 'n1', title: "Versus Does Versus", pillar: "Football / Culture", desc: "Quick, repeatable format replacing '20 questions'. Rapid-fire 'this vs that'.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
+          { id: 'n4', title: "Five Aside", pillar: "Culture / Music", desc: "We ask the talent one question from each of our core culture buckets.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' }
         ]
       },
       {
@@ -120,13 +119,18 @@
         ideas: [
           { id: 'vp1', title: '"Should the WC be in the USA?"', pillar: 'Football / Culture', desc: 'Street interviews getting fan opinions.', notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' }
         ]
-      },
+      }
+    ];
+
+    const INITIAL_VIDEOS = [
       {
-        id: 'video-essay',
-        title: 'Video Essay Ideas',
-        ideas: [
-          { id: 've1', title: '"The Truth about Eusébio at Benfica"', pillar: 'Football / History', desc: 'Deep dive into his historical impact.', notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' }
-        ]
+        firestoreId: 'default-1',
+        name: 'Joy Crookes - GOAT FIFA SONG',
+        caption: 'We challenged Joy Crookes to decide the GOAT EA FC song.\n\nGet your tickets to ‘Juniper Tour’ now.',
+        mediaUrl: '',
+        links: { ig: 'https://www.instagram.com/reel/DQkK5JIjrvb/', tiktok: '', x: '', youtube: '' },
+        metrics: { views: '1.2M', likes: '142k', comments: '4.5k', shares: '18k' },
+        createdAt: Date.now()
       }
     ];
 
@@ -145,36 +149,27 @@
       const [isScrolled, setIsScrolled] = useState(false);
 
       useEffect(() => {
-        const handleScroll = () => {
-          setIsScrolled(window.scrollY > 10);
-        };
+        const handleScroll = () => setIsScrolled(window.scrollY > 10);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
       }, []);
 
       return (
-        <nav
-          className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-            isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-100 py-3 shadow-sm' : 'bg-white py-5'
-          }`}
-        >
+        <nav className={`fixed top-0 left-0 w-full z-40 transition-all duration-300 ${isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-100 py-3 shadow-sm' : 'bg-white py-5'}`}>
           <div className="max-w-[1600px] mx-auto px-6 w-full flex items-center justify-between">
             <div className="flex-1 flex items-center">
               <Menu className="w-7 h-7 text-black cursor-pointer hover:opacity-70 transition-opacity" strokeWidth={1.5} />
             </div>
-
             <div className="flex-1 flex justify-center">
               <span className="font-oswald text-4xl md:text-5xl uppercase tracking-tight text-black font-semibold mt-1">
                 VERSUS
               </span>
             </div>
-
             <div className="flex-1 flex items-center justify-end gap-5">
               <div className="hidden md:flex items-center gap-5">
-                <a href="https://x.com/vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><XIcon className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
-                <a href="https://www.instagram.com/versus/" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><Instagram className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
-                <a href="https://www.tiktok.com/@vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><TikTok className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
-                <a href="https://www.youtube.com/@vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><Youtube className="w-[22px] h-[22px] text-black" strokeWidth={1.5} /></a>
+                <a href="https://x.com/vsrsus" target="_blank" className="hover:opacity-70 transition-opacity"><XIcon className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
+                <a href="https://www.instagram.com/versus/" target="_blank" className="hover:opacity-70 transition-opacity"><Instagram className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
+                <a href="https://www.tiktok.com/@vsrsus" target="_blank" className="hover:opacity-70 transition-opacity"><TikTok className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
               </div>
               <Search className="w-6 h-6 text-black hover:opacity-70 cursor-pointer ml-2" strokeWidth={1.5} />
             </div>
@@ -185,11 +180,7 @@
 
     const Hero = () => {
       const [loaded, setLoaded] = useState(false);
-
-      useEffect(() => {
-        const timer = setTimeout(() => setLoaded(true), 200);
-        return () => clearTimeout(timer);
-      }, []);
+      useEffect(() => { setTimeout(() => setLoaded(true), 100); }, []);
 
       return (
         <section className="relative min-h-[85dvh] w-full flex flex-col justify-end pb-24 px-6 md:px-12 bg-white overflow-hidden pt-32">
@@ -199,299 +190,250 @@
             </h1>
             <div className={`mt-8 flex items-center gap-4 text-gray-500 font-inter text-[11px] font-bold uppercase max-w-sm tracking-widest transition-all duration-1000 delay-150 ease-out ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
               <div className="w-8 h-[1px] bg-gray-400" />
-              <p>Idea Vault &mdash; Platform Access</p>
+              <p>Social Video Strategy</p>
             </div>
           </div>
         </section>
       );
     };
 
-    const IdeaCard = ({ idea, onUpdate, onDelete }) => {
-      const [isExpanded, setIsExpanded] = useState(false);
+    // --- NEW ANIMATED MODAL COMPONENT ---
+    const IdeaModal = ({ idea, onSave, onDelete, onClose }) => {
       const [formData, setFormData] = useState({
-        title: idea.title || '',
-        desc: idea.desc || '',
-        narrative: idea.narrative || '',
-        script: idea.script || '',
-        approval: idea.approval || 'Pending',
-        status: idea.status || 'Concept',
+        title: idea?.title || '',
+        desc: idea?.desc || '',
+        pillar: idea?.pillar || 'New Concept',
+        narrative: idea?.narrative || '',
+        script: idea?.script || '',
+        approval: idea?.approval || 'Pending',
+        status: idea?.status || 'Concept',
       });
 
-      useEffect(() => {
-        setFormData({
-          title: idea.title || '',
-          desc: idea.desc || '',
-          narrative: idea.narrative || '',
-          script: idea.script || '',
-          approval: idea.approval || 'Pending',
-          status: idea.status || 'Concept',
-        });
-      }, [idea]);
-
-      const handleChange = (field, value) => {
-        setFormData(prev => ({ ...prev, [field]: value }));
-      };
-
-      const handleSave = (e) => {
-        e.stopPropagation();
-        onUpdate(idea.id, formData);
-        setIsExpanded(false);
-      };
-
-      const handleDelete = (e) => {
-        e.stopPropagation();
-        onDelete(idea.id);
-      };
+      const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
       return (
-        <div className={`bg-white p-6 sm:p-8 flex flex-col transition-all duration-300 overflow-hidden relative border border-gray-200 ${isExpanded ? 'col-span-1 md:col-span-2 lg:col-span-3 min-h-[500px] shadow-2xl z-10 rounded-[20px]' : 'h-full group cursor-pointer hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-gray-300 hover:-translate-y-1 rounded-[20px]'}`} onClick={() => !isExpanded && setIsExpanded(true)}>
-          <div className="relative z-10 flex flex-col justify-between items-start mb-4 w-full gap-4">
-            <div className="w-full">
-              <span className="inline-block bg-black text-white font-inter text-[10px] font-bold uppercase tracking-widest px-3 py-1 mb-4 rounded-sm">{idea.pillar}</span>
-              {isExpanded ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={onClose} />
+          
+          <div className="relative bg-white rounded-[24px] shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-scale-in p-6 md:p-10">
+            <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-4">
+              <h2 className="font-oswald text-3xl md:text-4xl uppercase tracking-tight text-black">{idea ? 'Edit Concept' : 'New Concept'}</h2>
+              <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-gray-500">
+                <XIcon className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="md:col-span-2">
+                <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Video Title</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => handleChange('title', e.target.value)}
-                  className="font-oswald text-4xl uppercase tracking-tight leading-none mb-2 bg-transparent border-b-2 border-black focus:outline-none w-full text-black placeholder:text-gray-300"
+                  className="font-oswald text-4xl uppercase tracking-tight leading-none bg-transparent border-b-2 border-black focus:outline-none w-full text-black placeholder:text-gray-300 pb-2"
                   placeholder="Enter Title..."
                 />
-              ) : (
-                <h4 className="font-oswald text-3xl md:text-4xl uppercase tracking-tight leading-none mb-2 text-black">{idea.title}</h4>
-              )}
-            </div>
-            
-            {isExpanded ? (
-              <div className="flex gap-2 shrink-0 absolute top-0 right-0">
-                <button onClick={handleDelete} className="w-9 h-9 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Delete Idea">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-                <button onClick={(e) => {
-                  e.stopPropagation(); setIsExpanded(false); setFormData({
-                    title: idea.title || '',
-                    desc: idea.desc || '',
-                    narrative: idea.narrative || '',
-                    script: idea.script || '',
-                    approval: idea.approval || 'Pending',
-                    status: idea.status || 'Concept',
-                  });
-                }} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-gray-500 hover:text-black" title="Close Without Saving">
-                  <XIcon className="w-4 h-4" />
-                </button>
               </div>
-            ) : (
-              <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                 <ArrowUpRight className="w-5 h-5 text-gray-400" />
-              </div>
-            )}
-          </div>
 
-          {!isExpanded && (
-            <div className="mt-auto pt-4 border-t border-gray-100 w-full">
-                <p className="text-[14px] text-gray-600 leading-relaxed font-inter line-clamp-3">{idea.desc}</p>
-            </div>
-          )}
-
-          {isExpanded && (
-            <div className="relative z-10 mt-6 flex-1 flex flex-col gap-6 animate-in fade-in duration-500" onClick={(e) => e.stopPropagation()}>
-              <div className="w-full">
-                <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Short Description</label>
-                <textarea
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black focus:bg-white resize-none transition-colors"
-                  rows="2"
-                  placeholder="Enter description..."
-                  value={formData.desc}
-                  onChange={(e) => handleChange('desc', e.target.value)}
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Pillar / Category Tag</label>
+                <input
+                  type="text"
+                  value={formData.pillar}
+                  onChange={(e) => handleChange('pillar', e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black transition-colors"
+                  placeholder="e.g. Football / Culture"
                 />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                <div className="flex flex-col gap-2">
-                  <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Narrative Setup</label>
-                  <textarea
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black focus:bg-white resize-none transition-colors"
-                    rows="4"
-                    placeholder="Enter narrative..."
-                    value={formData.narrative}
-                    onChange={(e) => handleChange('narrative', e.target.value)}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Script / Notes</label>
-                  <textarea
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black focus:bg-white resize-none transition-colors"
-                    rows="4"
-                    placeholder="Enter script or notes..."
-                    value={formData.script}
-                    onChange={(e) => handleChange('script', e.target.value)}
-                  />
-                </div>
+
+              <div className="md:col-span-2 flex flex-col gap-2">
+                <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Short Description</label>
+                <textarea
+                  value={formData.desc}
+                  onChange={(e) => handleChange('desc', e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black resize-none transition-colors"
+                  rows="2"
+                  placeholder="Enter a brief summary..."
+                />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full pt-6 border-t border-gray-100">
-                <div className="flex flex-col gap-2">
-                  <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Approval Status</label>
-                  <select
-                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm font-inter text-black focus:outline-none focus:border-black"
-                    value={formData.approval}
-                    onChange={(e) => handleChange('approval', e.target.value)}
-                  >
-                    <option>Pending</option>
-                    <option>Approved</option>
-                    <option>Rejected</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Video Status</label>
-                  <select
-                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm font-inter text-black focus:outline-none focus:border-black"
-                    value={formData.status}
-                    onChange={(e) => handleChange('status', e.target.value)}
-                  >
-                    <option>Concept</option>
-                    <option>Pre-Production</option>
-                    <option>Shooting</option>
-                    <option>Editing</option>
-                    <option>Live</option>
-                  </select>
-                </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Narrative Setup</label>
+                <textarea
+                  value={formData.narrative}
+                  onChange={(e) => handleChange('narrative', e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black resize-none transition-colors"
+                  rows="4"
+                  placeholder="Enter narrative details..."
+                />
               </div>
 
-              <div className="mt-auto pt-4 flex justify-end">
-                <button onClick={handleSave} className="bg-black text-white font-inter font-bold uppercase tracking-widest px-8 py-3 rounded-full hover:bg-gray-800 transition-colors text-[11px]">Save Changes</button>
+              <div className="flex flex-col gap-2">
+                <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Script / Notes</label>
+                <textarea
+                  value={formData.script}
+                  onChange={(e) => handleChange('script', e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black resize-none transition-colors"
+                  rows="4"
+                  placeholder="Enter script or notes..."
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Approval Status</label>
+                <select value={formData.approval} onChange={(e) => handleChange('approval', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm font-inter text-black focus:outline-none focus:border-black">
+                  <option>Pending</option><option>Approved</option><option>Rejected</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Video Status</label>
+                <select value={formData.status} onChange={(e) => handleChange('status', e.target.value)} className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm font-inter text-black focus:outline-none focus:border-black">
+                  <option>Concept</option><option>Pre-Production</option><option>Shooting</option><option>Editing</option><option>Live</option>
+                </select>
               </div>
             </div>
-          )}
+
+            <div className="mt-10 pt-6 border-t border-gray-100 flex justify-between items-center">
+              {idea ? (
+                <button onClick={() => onDelete(idea.id)} className="text-red-500 font-inter text-[11px] font-bold uppercase tracking-widest hover:underline flex items-center gap-2">
+                  <Trash2 className="w-4 h-4"/> Delete
+                </button>
+              ) : <div></div>}
+              <button onClick={() => onSave(formData)} className="bg-black text-white font-inter font-bold uppercase tracking-widest px-8 py-3 rounded-full hover:bg-gray-800 transition-colors text-[11px] shadow-md">
+                Save Concept
+              </button>
+            </div>
+          </div>
         </div>
       );
     };
 
-    const IdeationEngine = ({ user, authError }) => {
-      const sectionRef = useRef(null);
-      const [categories, setCategories] = useState([]);
-      const [loading, setLoading] = useState(true);
+    const Workspace = ({ user, authError }) => {
+      const [categories, setCategories] = useState(INITIAL_CATEGORIES);
+      const [editingContext, setEditingContext] = useState(null); // { categoryId, idea }
 
+      // Background Sync
       useEffect(() => {
         if (!user) return;
         const catsRef = collection(db, 'artifacts', globalAppId, 'public', 'data', 'categories');
         
         const unsubscribe = onSnapshot(catsRef, (snapshot) => {
-          if (snapshot.empty) {
-            IDEATION_CATEGORIES.forEach(cat => {
-              setDoc(doc(catsRef, cat.id), cat).catch(console.error);
-            });
-            // Let the local write trigger the next snapshot to remove loading state
-          } else {
+          if (!snapshot.empty) {
             const fetchedCats = [];
             snapshot.forEach(d => fetchedCats.push({ ...d.data(), firestoreId: d.id }));
             const order = ['talent', 'vox-pop', 'video-essay'];
             fetchedCats.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
             setCategories(fetchedCats);
-            setLoading(false);
           }
-        }, (error) => {
-          console.error("Firestore Category Sync Error:", error);
-          setLoading(false);
-        });
+        }, (error) => console.error("Firestore Category Sync Error:", error));
 
         return () => unsubscribe();
       }, [user]);
 
-      const handleAddNewIdea = async (categoryId) => {
+      const handleSaveIdea = async (formData) => {
+        const { categoryId, idea } = editingContext;
         const cat = categories.find(c => c.id === categoryId);
         if (!cat) return;
-        
-        const newIdea = {
-          id: `new-${Date.now()}`,
-          title: 'Untitled Idea',
-          pillar: 'New Concept',
-          desc: '',
-          notes: '',
-          narrative: '',
-          approval: 'Pending',
-          script: '',
-          status: 'Concept'
-        };
-        
-        const updatedIdeas = [...cat.ideas, newIdea];
+
+        let updatedIdeas;
+        if (idea) {
+          updatedIdeas = cat.ideas.map(i => i.id === idea.id ? { ...i, ...formData } : i);
+        } else {
+          updatedIdeas = [...cat.ideas, { id: `new-${Date.now()}`, ...formData }];
+        }
+
+        // 1. Optimistic UI Update (Instant reflection on screen)
+        setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, ideas: updatedIdeas } : c));
+        setEditingContext(null);
+
+        // 2. Background Database Save
         try {
           await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'categories', categoryId), { ideas: updatedIdeas });
         } catch (err) {
-          console.error("Failed to add idea", err);
+          console.error("Failed to sync across devices", err);
+          alert("Change saved locally! To sync your edits with the rest of the team across different devices, you must plug in your own Firebase configuration code.");
         }
       };
 
-      const handleUpdateIdea = async (categoryId, ideaId, updatedData) => {
+      const handleDeleteIdea = async (ideaId) => {
+        const { categoryId } = editingContext;
         const cat = categories.find(c => c.id === categoryId);
-        if (!cat) return;
         
-        const updatedIdeas = cat.ideas.map(idea => idea.id === ideaId ? { ...idea, ...updatedData } : idea);
-        try {
-          await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'categories', categoryId), { ideas: updatedIdeas });
-        } catch (err) {
-          console.error("Failed to update idea", err);
-        }
-      };
+        const updatedIdeas = cat.ideas.filter(i => i.id !== ideaId);
+        
+        // 1. Optimistic Update
+        setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, ideas: updatedIdeas } : c));
+        setEditingContext(null);
 
-      const handleDeleteIdea = async (categoryId, ideaId) => {
-        const cat = categories.find(c => c.id === categoryId);
-        if (!cat) return;
-        
-        const updatedIdeas = cat.ideas.filter(idea => idea.id !== ideaId);
+        // 2. Background Save
         try {
           await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'categories', categoryId), { ideas: updatedIdeas });
         } catch (err) {
-          console.error("Failed to delete idea", err);
+          console.error("Failed to delete", err);
         }
       };
 
       return (
-        <section id="ideation" ref={sectionRef} className="py-24 px-6 md:px-12 max-w-[1600px] mx-auto bg-white border-t border-black min-h-[50vh]">
+        <section id="workspace" className="py-24 px-6 md:px-12 max-w-[1600px] mx-auto bg-white border-t border-black min-h-[50vh]">
+          {editingContext && (
+            <IdeaModal 
+              idea={editingContext.idea} 
+              onClose={() => setEditingContext(null)} 
+              onSave={handleSaveIdea}
+              onDelete={handleDeleteIdea}
+            />
+          )}
+
           <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
                 <p className="font-inter text-[11px] font-bold text-black uppercase tracking-widest mb-4">Workspace</p>
-                <h3 className="font-inter font-bold text-4xl md:text-5xl text-black tracking-tight">The Ideation Engine</h3>
+                <h3 className="font-inter font-bold text-4xl md:text-5xl text-black tracking-tight">Active Concepts</h3>
             </div>
             <div className={`flex items-center gap-2 border rounded-full py-2 px-4 w-fit ${authError ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
                 <div className={`w-2 h-2 rounded-full ${authError ? 'bg-red-500' : 'bg-green-500 animate-pulse'}`} />
-                <span className={`font-inter text-[10px] uppercase tracking-widest font-bold ${authError ? 'text-red-500' : 'text-gray-600'}`}>{authError ? 'Sync Disconnected' : 'Live Sync'}</span>
+                <span className={`font-inter text-[10px] uppercase tracking-widest font-bold ${authError ? 'text-red-500' : 'text-gray-600'}`}>{authError ? 'Local Mode Only' : 'Live Sync Active'}</span>
             </div>
           </div>
 
-          {authError ? (
-             <div className="w-full flex flex-col items-center justify-center py-24 text-red-500 font-inter text-sm uppercase tracking-widest font-bold border border-red-100 rounded-[20px] bg-red-50 gap-2 p-6 text-center">
-                <span>⚠️ Database Connection Blocked</span>
-                <span className="text-[10px] text-gray-600 normal-case tracking-normal max-w-md">Your Firebase project is blocking guest access. To fix this, go to your Firebase Console > Authentication > Sign-in method, and enable the "Anonymous" provider.</span>
+          {authError && (
+             <div className="w-full flex flex-col items-center justify-center mb-16 text-red-500 font-inter text-sm uppercase tracking-widest font-bold border border-red-100 rounded-[20px] bg-red-50 gap-2 p-6 text-center">
+                <span>⚠️ Working in Offline / Local Mode</span>
+                <span className="text-[10px] text-gray-600 normal-case tracking-normal max-w-md">Your workspace is functional, but edits won't sync to other devices. To fix this, enable Anonymous Auth in your Firebase Console, or replace the `firebaseConfig` block in this file with your own.</span>
              </div>
-          ) : loading ? (
-             <div className="w-full flex items-center justify-center py-24 text-gray-400 font-inter text-sm uppercase tracking-widest font-bold">Loading Vault...</div>
-          ) : (
-            <div className="flex flex-col gap-24">
-              {categories.map((category) => (
-                <div key={category.id} className="flex flex-col gap-8">
-                  <h4 className="font-oswald text-3xl uppercase tracking-wide text-black border-b-2 border-black pb-4 inline-block w-fit pr-12">{category.title}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
-                    {category.ideas.map((idea) => (
-                      <IdeaCard
-                        key={idea.id}
-                        idea={idea}
-                        onUpdate={(id, data) => handleUpdateIdea(category.id, id, data)}
-                        onDelete={(id) => handleDeleteIdea(category.id, id)}
-                      />
-                    ))}
-                    <div
-                      onClick={() => handleAddNewIdea(category.id)}
-                      className="h-full min-h-[200px] border border-dashed border-gray-300 rounded-[20px] flex flex-col items-center justify-center text-gray-400 hover:text-black hover:border-black hover:bg-gray-50 transition-all cursor-pointer group"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-gray-50 group-hover:bg-gray-200 flex items-center justify-center mb-4 transition-colors">
-                          <span className="text-2xl font-light">+</span>
+          )}
+
+          <div className="flex flex-col gap-24">
+            {categories.map((category) => (
+              <div key={category.id} className="flex flex-col gap-8">
+                <h4 className="font-oswald text-3xl uppercase tracking-wide text-black border-b-2 border-black pb-4 inline-block w-fit pr-12">{category.title}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
+                  
+                  {category.ideas.map((idea) => (
+                    <div key={idea.id} onClick={() => setEditingContext({ categoryId: category.id, idea })} className="bg-white p-6 sm:p-8 flex flex-col h-full group cursor-pointer hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-gray-300 hover:-translate-y-1 rounded-[20px] border border-gray-200 transition-all duration-300 relative">
+                      <div className="relative z-10 flex flex-col items-start mb-4 w-full gap-4">
+                        <span className="inline-block bg-black text-white font-inter text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-sm">{idea.pillar}</span>
+                        <h4 className="font-oswald text-3xl md:text-4xl uppercase tracking-tight leading-none text-black">{idea.title}</h4>
+                        <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <ArrowUpRight className="w-5 h-5 text-gray-400" />
+                        </div>
                       </div>
-                      <span className="font-inter text-[11px] font-bold uppercase tracking-widest">New Idea</span>
+                      <div className="mt-auto pt-4 border-t border-gray-100 w-full">
+                          <p className="text-[14px] text-gray-600 leading-relaxed font-inter line-clamp-3">{idea.desc}</p>
+                      </div>
                     </div>
+                  ))}
+
+                  <div onClick={() => setEditingContext({ categoryId: category.id, idea: null })} className="h-full min-h-[200px] border border-dashed border-gray-300 rounded-[20px] flex flex-col items-center justify-center text-gray-400 hover:text-black hover:border-black hover:bg-gray-50 transition-all cursor-pointer group">
+                    <div className="w-12 h-12 rounded-full bg-gray-50 group-hover:bg-gray-200 flex items-center justify-center mb-4 transition-colors">
+                        <span className="text-2xl font-light">+</span>
+                    </div>
+                    <span className="font-inter text-[11px] font-bold uppercase tracking-widest">New Idea</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
+          </div>
         </section>
       );
     };
@@ -530,13 +472,8 @@
         setIsEditing(false);
       };
 
-      const updateLink = (platform, value) => {
-        setFormData(prev => ({ ...prev, links: { ...prev.links, [platform]: value } }));
-      };
-
-      const updateMetric = (metricName, value) => {
-        setFormData(prev => ({ ...prev, metrics: { ...prev.metrics, [metricName]: value } }));
-      };
+      const updateLink = (platform, value) => setFormData(prev => ({ ...prev, links: { ...prev.links, [platform]: value } }));
+      const updateMetric = (metricName, value) => setFormData(prev => ({ ...prev, metrics: { ...prev.metrics, [metricName]: value } }));
 
       const getIgEmbedUrl = (url) => {
         try {
@@ -544,9 +481,7 @@
           const match = url.match(/(?:p|reel)\/([A-Za-z0-9_-]+)/);
           if (match) return `https://www.instagram.com/p/${match[1]}/embed`;
           return null;
-        } catch {
-          return null;
-        }
+        } catch { return null; }
       };
 
       const isVideoMedia = formData.mediaUrl && (formData.mediaUrl.includes('.mp4') || formData.mediaUrl.includes('.webm'));
@@ -555,20 +490,13 @@
       const platformMap = { ig: 'Instagram', tiktok: 'TikTok', x: 'X', youtube: 'YouTube' };
 
       return (
-        <div className={`bg-gray-50 border border-gray-200 rounded-[24px] p-8 md:p-10 transition-all duration-500 relative ${isEditing ? 'shadow-xl bg-white' : 'hover:border-gray-300'}`}>
+        <div className={`bg-gray-50 border border-gray-200 rounded-[24px] p-8 md:p-10 transition-all duration-500 relative ${isEditing ? 'shadow-xl bg-white scale-[1.01]' : 'hover:border-gray-300'}`}>
           <div className="flex flex-col lg:flex-row gap-10 items-stretch">
-            
-            {/* LEFT SIDE: Media / Thumbnail */}
             <div className="w-full lg:w-[350px] xl:w-[400px] shrink-0 flex flex-col gap-4">
               <div className="w-full aspect-[4/5] bg-gray-200 rounded-[16px] overflow-hidden relative border border-gray-300 flex items-center justify-center group">
                 
-                {/* Media Logic: Priority 1: Custom Media URL, Priority 2: IG Embed */}
                 {formData.mediaUrl ? (
-                  isVideoMedia ? (
-                    <video src={formData.mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                  ) : (
-                    <img src={formData.mediaUrl} alt="Thumbnail" className="w-full h-full object-cover" />
-                  )
+                  isVideoMedia ? <video src={formData.mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" /> : <img src={formData.mediaUrl} alt="Thumbnail" className="w-full h-full object-cover" />
                 ) : igEmbedUrl ? (
                   <iframe src={igEmbedUrl} width="100%" height="100%" frameBorder="0" scrolling="no" className="w-full h-full bg-white" />
                 ) : (
@@ -579,7 +507,7 @@
                 )}
                 
                 {isEditing && (
-                  <div className="absolute inset-0 bg-white/95 backdrop-blur-md p-6 flex flex-col items-center justify-center gap-4 transition-opacity z-10">
+                  <div className="absolute inset-0 bg-white/95 backdrop-blur-md p-6 flex flex-col items-center justify-center gap-4 transition-opacity z-10 animate-fade-in">
                     <label className="font-inter text-[10px] uppercase text-gray-500 font-bold text-center">Custom Media Override</label>
                     <input type="text" value={formData.mediaUrl} onChange={e => setFormData({...formData, mediaUrl: e.target.value})} placeholder="Paste .jpg or .mp4 link..." className="w-full bg-white border border-gray-300 rounded-lg p-3 text-xs font-inter text-black focus:outline-none focus:border-black text-center shadow-inner" />
                     <p className="font-inter text-[9px] text-gray-500 text-center leading-relaxed">Paste a direct link to an image/video, OR leave blank to auto-embed the Instagram link.</p>
@@ -588,10 +516,9 @@
               </div>
             </div>
 
-            {/* RIGHT SIDE: Title, Copy, Links, Metrics */}
             <div className="flex-1 flex flex-col w-full h-full">
               {isEditing ? (
-                <div className="w-full mb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="w-full mb-6 flex flex-col sm:flex-row justify-between items-start gap-4 animate-fade-in">
                   <div className="flex-1 w-full">
                     <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Video Title</label>
                     <input
@@ -601,7 +528,7 @@
                       className="font-oswald text-4xl uppercase tracking-tight bg-transparent border-b-2 border-black focus:outline-none w-full text-black placeholder:text-gray-300 pb-2"
                     />
                   </div>
-                  <button onClick={handleSave} className="shrink-0 font-inter text-[11px] font-bold uppercase tracking-widest bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 transition-colors sm:mt-6 w-full sm:w-auto">Save</button>
+                  <button onClick={handleSave} className="shrink-0 font-inter text-[11px] font-bold uppercase tracking-widest bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 transition-colors sm:mt-6 w-full sm:w-auto shadow-md">Save Changes</button>
                 </div>
               ) : (
                 <div className="mb-6 flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-gray-200 pb-4">
@@ -619,9 +546,8 @@
                 </div>
               )}
 
-              {/* Caption / Copy Section */}
               {isEditing ? (
-                <div className="mb-8">
+                <div className="mb-8 animate-fade-in">
                   <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Caption / Social Copy</label>
                   <textarea
                     value={formData.caption}
@@ -640,7 +566,6 @@
                 </div>
               )}
 
-              {/* View Mode: Platform Quick Links */}
               {!isEditing && activeKeys.length > 0 && (
                 <div className="mb-8">
                   <h5 className="font-inter text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Live Links</h5>
@@ -653,16 +578,15 @@
                 </div>
               )}
 
-              {/* Editing Mode: Links & Metrics Input Grids */}
               {isEditing && (
-                <div className="flex flex-col gap-8 w-full animate-in fade-in">
+                <div className="flex flex-col gap-8 w-full animate-fade-in">
                   <div>
                     <h5 className="font-inter text-[11px] font-bold uppercase tracking-widest text-black border-b border-gray-200 pb-2 mb-4">Social URLs</h5>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {['ig', 'tiktok', 'x', 'youtube'].map(plat => (
                         <div key={plat} className="flex flex-col gap-2">
                           <label className="font-inter text-[10px] uppercase text-gray-500">{platformMap[plat]} Link</label>
-                          <input type="text" value={formData.links[plat]} onChange={e => updateLink(plat, e.target.value)} placeholder={`Paste ${platformMap[plat]} URL...`} className="bg-white border border-gray-200 rounded-lg p-3 text-sm font-inter text-black focus:outline-none focus:border-black shadow-inner" />
+                          <input type="text" value={formData.links[plat]} onChange={e => updateLink(plat, e.target.value)} placeholder={`Paste URL...`} className="bg-white border border-gray-200 rounded-lg p-3 text-sm font-inter text-black focus:outline-none focus:border-black shadow-inner" />
                         </div>
                       ))}
                     </div>
@@ -682,7 +606,6 @@
                 </div>
               )}
 
-              {/* View Mode: Metrics Readouts */}
               {!isEditing && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6 bg-white border border-gray-200 rounded-[20px] p-6 shadow-sm mt-auto">
                   <div className="flex flex-col">
@@ -709,36 +632,21 @@
       );
     };
 
-    const LiveArchive = ({ user, authError }) => {
-      const [videos, setVideos] = useState([]);
-      const [loading, setLoading] = useState(true);
+    const LiveArchive = ({ user }) => {
+      const [videos, setVideos] = useState(INITIAL_VIDEOS);
 
       useEffect(() => {
         if (!user) return;
         const videosRef = collection(db, 'artifacts', globalAppId, 'public', 'data', 'videos');
         
         const unsubscribe = onSnapshot(videosRef, (snapshot) => {
-          if (snapshot.empty) {
-            const defaultVideo = {
-              name: 'Joy Crookes - GOAT FIFA SONG',
-              caption: 'We challenged Joy Crookes to decide the GOAT EA FC song.\n\nGet your tickets to ‘Juniper Tour’ now.',
-              mediaUrl: '',
-              links: { ig: 'https://www.instagram.com/reel/DQkK5JIjrvb/', tiktok: '', x: '', youtube: '' },
-              metrics: { views: '', likes: '', comments: '', shares: '' },
-              createdAt: Date.now()
-            };
-            addDoc(videosRef, defaultVideo).catch(console.error);
-          } else {
+          if (!snapshot.empty) {
             const fetchedVideos = [];
             snapshot.forEach(d => fetchedVideos.push({ firestoreId: d.id, ...d.data() }));
             fetchedVideos.sort((a, b) => b.createdAt - a.createdAt);
             setVideos(fetchedVideos);
-            setLoading(false);
           }
-        }, (error) => {
-          console.error("Firestore Videos Sync Error:", error);
-          setLoading(false);
-        });
+        }, (error) => console.error("Firestore Videos Sync Error:", error));
 
         return () => unsubscribe();
       }, [user]);
@@ -746,33 +654,38 @@
       const handleAddVideo = async () => {
         const newVideo = {
           name: 'New Release — ' + new Date().toLocaleDateString(),
-          caption: '',
-          mediaUrl: '',
+          caption: '', mediaUrl: '',
           links: { ig: '', tiktok: '', x: '', youtube: '' },
           metrics: { views: '', likes: '', comments: '', shares: '' },
           createdAt: Date.now()
         };
+        
+        // Optimistic UI Update
+        setVideos([newVideo, ...videos]);
+        
+        // Background Save
         try {
           await addDoc(collection(db, 'artifacts', globalAppId, 'public', 'data', 'videos'), newVideo);
         } catch (err) {
           console.error("Failed to add video", err);
+          alert("Change saved locally! Remember to set up Firebase for cross-device sync.");
         }
       };
 
       const handleDeleteVideo = async (firestoreId) => {
-        try {
-          await deleteDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'videos', firestoreId));
-        } catch (err) {
-          console.error("Failed to delete video", err);
-        }
+        setVideos(videos.filter(v => v.firestoreId !== firestoreId)); // Optimistic UI
+        try { await deleteDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'videos', firestoreId)); }
+        catch (err) { console.error("Failed to delete", err); }
       };
 
       const handleUpdateVideo = async (updatedVideo) => {
         const { firestoreId, ...data } = updatedVideo;
-        try {
-          await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'videos', firestoreId), data);
-        } catch (err) {
-          console.error("Failed to update video", err);
+        setVideos(videos.map(v => v.firestoreId === firestoreId ? updatedVideo : v)); // Optimistic UI
+        
+        try { await updateDoc(doc(db, 'artifacts', globalAppId, 'public', 'data', 'videos', firestoreId), data); }
+        catch (err) {
+          console.error("Failed to update", err);
+          alert("Change saved locally! Remember to set up Firebase for cross-device sync.");
         }
       };
 
@@ -784,67 +697,44 @@
               <h3 className="font-oswald text-6xl md:text-[8rem] uppercase text-black leading-[0.85] tracking-tight">Live Archive</h3>
             </div>
             <Magnetic>
-              <button
-                onClick={handleAddVideo}
-                className="flex items-center gap-2 bg-black text-white px-8 py-4 rounded-full text-[11px] font-inter font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors focus:outline-none mb-2"
-              >
+              <button onClick={handleAddVideo} className="flex items-center gap-2 bg-black text-white px-8 py-4 rounded-full text-[11px] font-inter font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors shadow-md">
                 + Archive New Video
               </button>
             </Magnetic>
           </div>
 
-          {authError ? (
-            <div className="w-full flex flex-col items-center justify-center py-24 text-red-500 font-inter text-sm uppercase tracking-widest font-bold border border-red-100 rounded-[20px] bg-red-50 gap-2 p-6 text-center">
-                <span>⚠️ Database Connection Blocked</span>
-                <span className="text-[10px] text-gray-600 normal-case tracking-normal max-w-md">Your Firebase project is blocking guest access. To fix this, go to your Firebase Console > Authentication > Sign-in method, and enable the "Anonymous" provider.</span>
-            </div>
-          ) : loading ? (
-             <div className="w-full flex items-center justify-center py-24 text-gray-400 font-inter text-sm uppercase tracking-widest font-bold">Loading Archive...</div>
-          ) : (
-            <div className="flex flex-col gap-12">
-              {videos.map((video) => (
-                <LiveArchiveCard
-                  key={video.firestoreId}
-                  video={video}
-                  onDelete={handleDeleteVideo}
-                  onUpdate={handleUpdateVideo}
-                />
-              ))}
-              {videos.length === 0 && (
-                <div className="w-full py-24 border border-dashed border-gray-300 rounded-[24px] flex flex-col items-center justify-center text-gray-500 bg-gray-50">
-                  <p className="font-inter text-[11px] font-bold uppercase tracking-widest">No Archived Links. Start adding your live videos above.</p>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex flex-col gap-12">
+            {videos.map((video) => (
+              <LiveArchiveCard key={video.firestoreId || video.createdAt} video={video} onDelete={handleDeleteVideo} onUpdate={handleUpdateVideo} />
+            ))}
+            {videos.length === 0 && (
+              <div className="w-full py-24 border border-dashed border-gray-300 rounded-[24px] flex flex-col items-center justify-center text-gray-500 bg-gray-50">
+                <p className="font-inter text-[11px] font-bold uppercase tracking-widest">No Archived Links. Start adding your live videos above.</p>
+              </div>
+            )}
+          </div>
         </section>
       );
     };
 
-    const Footer = () => {
-      return (
-        <footer className="bg-black pt-24 pb-12 px-6 text-white border-t border-black">
-          <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-end gap-12">
-            <div>
-              <h2 className="font-oswald text-8xl md:text-[10rem] uppercase leading-[0.8] tracking-tight mb-6">VERSUS</h2>
-              <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-full py-2 px-5 w-fit">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="font-inter text-[10px] uppercase font-bold tracking-widest text-white/90">System Operational</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-6">
-              <a href="https://x.com/vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><XIcon className="w-5 h-5 text-white" strokeWidth={1.5} /></a>
-              <a href="https://www.instagram.com/versus/" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><Instagram className="w-5 h-5 text-white" strokeWidth={1.5} /></a>
-              <a href="https://www.tiktok.com/@vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity">
-                <TikTok className="w-5 h-5 text-white" strokeWidth={1.5} />
-              </a>
-              <a href="https://www.youtube.com/@vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><Youtube className="w-[22px] h-[22px] text-white" strokeWidth={1.5} /></a>
+    const Footer = () => (
+      <footer className="bg-black pt-24 pb-12 px-6 text-white border-t border-black">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-end gap-12">
+          <div>
+            <h2 className="font-oswald text-8xl md:text-[10rem] uppercase leading-[0.8] tracking-tight mb-6">VERSUS</h2>
+            <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-full py-2 px-5 w-fit">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="font-inter text-[10px] uppercase font-bold tracking-widest text-white/90">System Operational</span>
             </div>
           </div>
-        </footer>
-      );
-    };
+          <div className="flex items-center gap-6">
+            <a href="https://x.com/vsrsus" target="_blank" className="hover:opacity-70 transition-opacity"><XIcon className="w-5 h-5 text-white" strokeWidth={1.5} /></a>
+            <a href="https://www.instagram.com/versus/" target="_blank" className="hover:opacity-70 transition-opacity"><Instagram className="w-5 h-5 text-white" strokeWidth={1.5} /></a>
+            <a href="https://www.tiktok.com/@vsrsus" target="_blank" className="hover:opacity-70 transition-opacity"><TikTok className="w-5 h-5 text-white" strokeWidth={1.5} /></a>
+          </div>
+        </div>
+      </footer>
+    );
 
     function App() {
       const [user, setUser] = useState(null);
@@ -873,8 +763,8 @@
         <main className="min-h-screen bg-white relative selection:bg-black selection:text-white">
           <Navbar />
           <Hero />
-          <IdeationEngine user={user} authError={authError} />
-          <LiveArchive user={user} authError={authError} />
+          <Workspace user={user} authError={authError} />
+          <LiveArchive user={user} />
           <Footer />
         </main>
       );
