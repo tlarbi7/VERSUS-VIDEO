@@ -82,17 +82,14 @@
     // =====================================
     // FIREBASE INITIALIZATION
     // =====================================
-    // ⚠️ IMPORTANT: To sync edits across devices on Netlify, replace the object below with your OWN Firebase Config.
-    const firebaseConfig = typeof __firebase_config !== 'undefined' 
-      ? JSON.parse(__firebase_config) 
-      : {
-          apiKey: "AIzaSyBsqLYjOrx1MZFSgSBGkrLBnGvlK9OcTgo",
-          authDomain: "versus-video.firebaseapp.com",
-          projectId: "versus-video",
-          storageBucket: "versus-video.firebasestorage.app",
-          messagingSenderId: "79350904129",
-          appId: "1:79350904129:web:895ef946667e126d29ddc0"
-        };
+    const firebaseConfig = {
+      apiKey: "AIzaSyBsqLYjOrx1MZFSgSBGkrLBnGvlK9OcTgo",
+      authDomain: "versus-video.firebaseapp.com",
+      projectId: "versus-video",
+      storageBucket: "versus-video.firebasestorage.app",
+      messagingSenderId: "79350904129",
+      appId: "1:79350904129:web:895ef946667e126d29ddc0"
+    };
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
@@ -743,11 +740,7 @@
       useEffect(() => {
         const initAuth = async () => {
           try {
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-              await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-              await signInAnonymously(auth);
-            }
+            await signInAnonymously(auth);
           } catch (error) {
             console.error("Authentication Error:", error);
             setAuthError(error.message);
