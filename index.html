@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>VERSUS Ideation Engine</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            oswald: ['Oswald', 'sans-serif'],
+            inter: ['Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Fonts & Global Styles -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap');
+    
+    .font-oswald { font-family: 'Oswald', sans-serif; }
+    .font-inter { font-family: 'Inter', sans-serif; }
+    
+    /* Clean up global scrollbar for editorial look */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #fff; }
+    ::-webkit-scrollbar-thumb { background: #000; }
+  </style>
+
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  
+  <!-- Babel for parsing JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Firebase Compat Libraries (Error-Free CDN approach for pure HTML) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Main App Script -->
+  <script type="text/babel">
+    const { useEffect, useRef, useState } = React;
+
+    // =====================================
+    // ICONS
+    // =====================================
+    const Menu = ({ className, strokeWidth }) => <svg className={className} strokeWidth={strokeWidth || 2} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>;
+    const ArrowUpRight = ({ className, strokeWidth }) => <svg className={className} strokeWidth={strokeWidth || 2} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>;
+    const Instagram = ({ className, strokeWidth }) => <svg className={className} strokeWidth={strokeWidth || 2} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>;
+    const Trash2 = ({ className, strokeWidth }) => <svg className={className} strokeWidth={strokeWidth || 2} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>;
+    const XIcon = ({ className, strokeWidth }) => <svg className={className} strokeWidth={strokeWidth || 2} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>;
+    const Search = ({ className, strokeWidth }) => <svg className={className} strokeWidth={strokeWidth || 2} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>;
+    const Youtube = ({ className, strokeWidth }) => <svg className={className} strokeWidth={strokeWidth || 2} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 7.1C2.6 5.9 3.5 5 4.7 4.9 8.2 4.6 15.8 4.6 19.3 4.9c1.2.1 2.1 1 2.2 2.2.3 2.7.3 7.1 0 9.8-.1 1.2-1 2.1-2.2 2.2-3.5.3-11.1.3-14.6 0-1.2-.1-2.1-1-2.2-2.2-.3-2.7-.3-7.1 0-9.8Z"/><path d="m10 15 5-3-5-3v6Z"/></svg>;
+    const TikTok = ({ className, strokeWidth }) => <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth || 1.5} strokeLinecap="round" strokeLinejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg>;
+
+    // =====================================
+    // FIREBASE INITIALIZATION (Compat API)
+    // =====================================
+    const firebaseConfig = typeof __firebase_config !== 'undefined' 
+      ? JSON.parse(__firebase_config) 
+      : {
+          apiKey: "AIzaSyBsqLYjOrx1MZFSgSBGkrLBnGvlK9OcTgo",
+          authDomain: "versus-video.firebaseapp.com",
+          projectId: "versus-video",
+          storageBucket: "versus-video.firebasestorage.app",
+          messagingSenderId: "79350904129",
+          appId: "1:79350904129:web:895ef946667e126d29ddc0"
+        };
+
+    // Initialize Firebase if not already initialized
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+    const globalAppId = typeof __app_id !== 'undefined' ? __app_id : 'versus-ideation-engine';
+
+    // =====================================
+    // DEFAULT DATA
+    // =====================================
+    const IDEATION_CATEGORIES = [
+      {
+        id: 'talent',
+        title: 'Talent Video Ideas',
+        ideas: [
+          { id: 't1', title: "What's The Score?", pillar: "Football / Music", desc: "If their life was a movie - what song would soundtrack the key moments?", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
+          { id: 't8', title: "Woke Up Thinking About", pillar: "Football / Nostalgia", desc: "Quickfire trivia test asking players to name niche lost-file players in 60s.", notes: '', narrative: "Testing people's ball knowledge of iconic and WUTA players, this can be done in the street via vox pops but also in a studio. We choose some of the coldest eras of players in case that person has serious ball knowledge and can tell us more.\n\nThe interviewee watches a photo that slowly pans out on an iPad that reveals an iconic aesthetic/WUTA player (i.e.: 2012 Bale wearing Spurs kit and F50)", approval: 'Pending', script: '', status: 'Concept' },
+          { id: 'n1', title: "Versus Does Versus", pillar: "Football / Culture", desc: "Quick, repeatable format under 1 min replacing '20 questions'. Rapid-fire 'this vs that' for high audience retention.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
+          { id: 'n2', title: "Versus Firsts", pillar: "Football / Culture", desc: "Asking talent about their 'firsts' (first pair of boots, first match, first album bought, etc).", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
+          { id: 'n3', title: "Streets Are Saying", pillar: "Football / Culture", desc: "Reacting to popular opinions or rumors circulating in the culture and football space.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
+          { id: 'n4', title: "Five Aside", pillar: "Culture / Music / Fashion", desc: "We ask the talent one question from each of these VERSUS buckets (music, culture, fashion, food, football/gaming)", notes: "Example Qs\n\nWhat meal would you eat everyday if you could\n\nIf you were the Admin, what song would you post yourself with\n\nThe greatest jersey of all time is...\n\nName the first random baller that comes\n\nto mind (WUTA)\n\nWhy the gold jacket (Amad)", narrative: '', approval: 'Pending', script: '', status: 'Concept' },
+          { id: 'n5', title: "Rate the Fit", pillar: "Football / Fashion", desc: "Adapting existing content to rate outfits of players arriving at matches or events.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
+          { id: 'n6', title: "Ball Knowledge", pillar: "Football / Trivia", desc: "Interactive format testing the football trivia knowledge of talent or fans.", notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' },
+          { id: 'n7', title: "Screen Time", pillar: "Football / Culture", desc: "Players are chronically online, but we only get to see the sanitised versions of their online selves. We ask the questions every fan wants to know about how they really exist on the internet.", notes: "What's your screen time?\nHow many unread texts do you have?\nLast video in your camera roll?\nWhat's your most used emoji?\nWhat's your most used app?\nWhat's on your FYP?\nWho is your most famous contact?\nWhen was the last time you text your mum?\nWho did you send your last DM to?", narrative: '', approval: 'Pending', script: '', status: 'Concept' }
+        ]
+      },
+      {
+        id: 'vox-pop',
+        title: 'Vox Pop Ideas',
+        ideas: [
+          { id: 'vp1', title: '"Should the WC be in the USA?"', pillar: 'Football / Culture', desc: 'Street interviews getting fan opinions.', notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' }
+        ]
+      },
+      {
+        id: 'video-essay',
+        title: 'Video Essay Ideas',
+        ideas: [
+          { id: 've1', title: '"The Truth about Eusébio at Benfica"', pillar: 'Football / History', desc: 'Deep dive into his historical impact.', notes: '', narrative: '', approval: 'Pending', script: '', status: 'Concept' }
+        ]
+      }
+    ];
+
+    // =====================================
+    // COMPONENTS
+    // =====================================
+    const Magnetic = ({ children }) => {
+      return (
+        <div className="inline-block cursor-pointer transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1 ease-in-out">
+          {children}
+        </div>
+      );
+    };
+
+    const Navbar = () => {
+      const [isScrolled, setIsScrolled] = useState(false);
+
+      useEffect(() => {
+        const handleScroll = () => {
+          setIsScrolled(window.scrollY > 10);
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+      }, []);
+
+      return (
+        <nav
+          className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+            isScrolled ? 'bg-white/95 backdrop-blur-md border-b border-gray-100 py-3 shadow-sm' : 'bg-white py-5'
+          }`}
+        >
+          <div className="max-w-[1600px] mx-auto px-6 w-full flex items-center justify-between">
+            {/* Left: Menu */}
+            <div className="flex-1 flex items-center">
+              <Menu className="w-7 h-7 text-black cursor-pointer hover:opacity-70 transition-opacity" strokeWidth={1.5} />
+            </div>
+
+            {/* Center: Logo */}
+            <div className="flex-1 flex justify-center">
+              <span className="font-oswald text-4xl md:text-5xl uppercase tracking-tight text-black font-semibold mt-1">
+                VERSUS
+              </span>
+            </div>
+
+            {/* Right: Socials & Search */}
+            <div className="flex-1 flex items-center justify-end gap-5">
+              <div className="hidden md:flex items-center gap-5">
+                <a href="https://x.com/vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><XIcon className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
+                <a href="https://www.instagram.com/versus/" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><Instagram className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
+                <a href="https://www.tiktok.com/@vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><TikTok className="w-5 h-5 text-black" strokeWidth={1.5} /></a>
+                <a href="https://www.youtube.com/@vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><Youtube className="w-[22px] h-[22px] text-black" strokeWidth={1.5} /></a>
+              </div>
+              <Search className="w-6 h-6 text-black hover:opacity-70 cursor-pointer ml-2" strokeWidth={1.5} />
+            </div>
+          </div>
+        </nav>
+      );
+    };
+
+    const Hero = () => {
+      const [loaded, setLoaded] = useState(false);
+
+      useEffect(() => {
+        const timer = setTimeout(() => setLoaded(true), 200);
+        return () => clearTimeout(timer);
+      }, []);
+
+      return (
+        <section className="relative min-h-[85dvh] w-full flex flex-col justify-end pb-24 px-6 md:px-12 bg-white overflow-hidden pt-32">
+          <div className="relative z-10 max-w-[1600px] mx-auto w-full">
+            <h1 className={`text-black font-oswald text-7xl md:text-[11rem] leading-[0.85] tracking-tight uppercase mb-6 transition-all duration-1000 ease-out ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+              VERSUS<br />SOCIAL VIDEO
+            </h1>
+            <div className={`mt-8 flex items-center gap-4 text-gray-500 font-inter text-[11px] font-bold uppercase max-w-sm tracking-widest transition-all duration-1000 delay-150 ease-out ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+              <div className="w-8 h-[1px] bg-gray-400" />
+              <p>Idea Vault &mdash; Platform Access</p>
+            </div>
+          </div>
+        </section>
+      );
+    };
+
+    const IdeaCard = ({ idea, onUpdate, onDelete }) => {
+      const [isExpanded, setIsExpanded] = useState(false);
+      const [formData, setFormData] = useState({
+        title: idea.title || '',
+        desc: idea.desc || '',
+        narrative: idea.narrative || '',
+        script: idea.script || '',
+        approval: idea.approval || 'Pending',
+        status: idea.status || 'Concept',
+      });
+
+      useEffect(() => {
+        setFormData({
+          title: idea.title || '',
+          desc: idea.desc || '',
+          narrative: idea.narrative || '',
+          script: idea.script || '',
+          approval: idea.approval || 'Pending',
+          status: idea.status || 'Concept',
+        });
+      }, [idea]);
+
+      const handleChange = (field, value) => {
+        setFormData(prev => ({ ...prev, [field]: value }));
+      };
+
+      const handleSave = (e) => {
+        e.stopPropagation();
+        onUpdate(idea.id, formData);
+        setIsExpanded(false);
+      };
+
+      const handleDelete = (e) => {
+        e.stopPropagation();
+        onDelete(idea.id);
+      };
+
+      return (
+        <div className={`bg-white p-6 sm:p-8 flex flex-col transition-all duration-300 overflow-hidden relative border border-gray-200 ${isExpanded ? 'col-span-1 md:col-span-2 lg:col-span-3 min-h-[500px] shadow-2xl z-10 rounded-[20px]' : 'h-full group cursor-pointer hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] hover:border-gray-300 hover:-translate-y-1 rounded-[20px]'}`} onClick={() => !isExpanded && setIsExpanded(true)}>
+          <div className="relative z-10 flex flex-col justify-between items-start mb-4 w-full gap-4">
+            <div className="w-full">
+              <span className="inline-block bg-black text-white font-inter text-[10px] font-bold uppercase tracking-widest px-3 py-1 mb-4 rounded-sm">{idea.pillar}</span>
+              {isExpanded ? (
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => handleChange('title', e.target.value)}
+                  className="font-oswald text-4xl uppercase tracking-tight leading-none mb-2 bg-transparent border-b-2 border-black focus:outline-none w-full text-black placeholder:text-gray-300"
+                  placeholder="Enter Title..."
+                />
+              ) : (
+                <h4 className="font-oswald text-3xl md:text-4xl uppercase tracking-tight leading-none mb-2 text-black">{idea.title}</h4>
+              )}
+            </div>
+            
+            {isExpanded ? (
+              <div className="flex gap-2 shrink-0 absolute top-0 right-0">
+                <button onClick={handleDelete} className="w-9 h-9 rounded-full bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Delete Idea">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+                <button onClick={(e) => {
+                  e.stopPropagation(); setIsExpanded(false); setFormData({
+                    title: idea.title || '',
+                    desc: idea.desc || '',
+                    narrative: idea.narrative || '',
+                    script: idea.script || '',
+                    approval: idea.approval || 'Pending',
+                    status: idea.status || 'Concept',
+                  });
+                }} className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors text-gray-500 hover:text-black" title="Close Without Saving">
+                  <XIcon className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                 <ArrowUpRight className="w-5 h-5 text-gray-400" />
+              </div>
+            )}
+          </div>
+
+          {!isExpanded && (
+            <div className="mt-auto pt-4 border-t border-gray-100 w-full">
+                <p className="text-[14px] text-gray-600 leading-relaxed font-inter line-clamp-3">{idea.desc}</p>
+            </div>
+          )}
+
+          {isExpanded && (
+            <div className="relative z-10 mt-6 flex-1 flex flex-col gap-6 animate-in fade-in duration-500" onClick={(e) => e.stopPropagation()}>
+              <div className="w-full">
+                <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Short Description</label>
+                <textarea
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black focus:bg-white resize-none transition-colors"
+                  rows="2"
+                  placeholder="Enter description..."
+                  value={formData.desc}
+                  onChange={(e) => handleChange('desc', e.target.value)}
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div className="flex flex-col gap-2">
+                  <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Narrative Setup</label>
+                  <textarea
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black focus:bg-white resize-none transition-colors"
+                    rows="4"
+                    placeholder="Enter narrative..."
+                    value={formData.narrative}
+                    onChange={(e) => handleChange('narrative', e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Script / Notes</label>
+                  <textarea
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black focus:bg-white resize-none transition-colors"
+                    rows="4"
+                    placeholder="Enter script or notes..."
+                    value={formData.script}
+                    onChange={(e) => handleChange('script', e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full pt-6 border-t border-gray-100">
+                <div className="flex flex-col gap-2">
+                  <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Approval Status</label>
+                  <select
+                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm font-inter text-black focus:outline-none focus:border-black"
+                    value={formData.approval}
+                    onChange={(e) => handleChange('approval', e.target.value)}
+                  >
+                    <option>Pending</option>
+                    <option>Approved</option>
+                    <option>Rejected</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest">Video Status</label>
+                  <select
+                    className="w-full bg-white border border-gray-200 rounded-xl p-3 text-sm font-inter text-black focus:outline-none focus:border-black"
+                    value={formData.status}
+                    onChange={(e) => handleChange('status', e.target.value)}
+                  >
+                    <option>Concept</option>
+                    <option>Pre-Production</option>
+                    <option>Shooting</option>
+                    <option>Editing</option>
+                    <option>Live</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-4 flex justify-end">
+                <button onClick={handleSave} className="bg-black text-white font-inter font-bold uppercase tracking-widest px-8 py-3 rounded-full hover:bg-gray-800 transition-colors text-[11px]">Save Changes</button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    const IdeationEngine = ({ user }) => {
+      const sectionRef = useRef(null);
+      const [categories, setCategories] = useState([]);
+
+      useEffect(() => {
+        if (!user) return;
+        const catsRef = db.collection('artifacts/' + globalAppId + '/public/data/categories');
+        
+        const unsubscribe = catsRef.onSnapshot((snapshot) => {
+          if (snapshot.empty) {
+            IDEATION_CATEGORIES.forEach(cat => {
+              catsRef.doc(cat.id).set(cat).catch(console.error);
+            });
+          } else {
+            const fetchedCats = [];
+            snapshot.forEach(d => fetchedCats.push({ ...d.data(), firestoreId: d.id }));
+            const order = ['talent', 'vox-pop', 'video-essay'];
+            fetchedCats.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+            setCategories(fetchedCats);
+          }
+        }, (error) => {
+          console.error("Firestore Category Sync Error:", error);
+        });
+
+        return () => unsubscribe();
+      }, [user]);
+
+      const handleAddNewIdea = async (categoryId) => {
+        const cat = categories.find(c => c.id === categoryId);
+        if (!cat) return;
+        
+        const newIdea = {
+          id: `new-${Date.now()}`,
+          title: 'Untitled Idea',
+          pillar: 'New Concept',
+          desc: '',
+          notes: '',
+          narrative: '',
+          approval: 'Pending',
+          script: '',
+          status: 'Concept'
+        };
+        
+        const updatedIdeas = [...cat.ideas, newIdea];
+        try {
+          await db.collection('artifacts/' + globalAppId + '/public/data/categories').doc(categoryId).update({ ideas: updatedIdeas });
+        } catch (err) {
+          console.error("Failed to add idea", err);
+        }
+      };
+
+      const handleUpdateIdea = async (categoryId, ideaId, updatedData) => {
+        const cat = categories.find(c => c.id === categoryId);
+        if (!cat) return;
+        
+        const updatedIdeas = cat.ideas.map(idea => idea.id === ideaId ? { ...idea, ...updatedData } : idea);
+        try {
+          await db.collection('artifacts/' + globalAppId + '/public/data/categories').doc(categoryId).update({ ideas: updatedIdeas });
+        } catch (err) {
+          console.error("Failed to update idea", err);
+        }
+      };
+
+      const handleDeleteIdea = async (categoryId, ideaId) => {
+        const cat = categories.find(c => c.id === categoryId);
+        if (!cat) return;
+        
+        const updatedIdeas = cat.ideas.filter(idea => idea.id !== ideaId);
+        try {
+          await db.collection('artifacts/' + globalAppId + '/public/data/categories').doc(categoryId).update({ ideas: updatedIdeas });
+        } catch (err) {
+          console.error("Failed to delete idea", err);
+        }
+      };
+
+      return (
+        <section id="ideation" ref={sectionRef} className="py-24 px-6 md:px-12 max-w-[1600px] mx-auto bg-white border-t border-black">
+          <div className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+                <p className="font-inter text-[11px] font-bold text-black uppercase tracking-widest mb-4">Workspace</p>
+                <h3 className="font-inter font-bold text-4xl md:text-5xl text-black tracking-tight">The Ideation Engine</h3>
+            </div>
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full py-2 px-4 w-fit">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="font-inter text-[10px] uppercase tracking-widest text-gray-600 font-bold">Live Sync</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-24">
+            {categories.map((category) => (
+              <div key={category.id} className="flex flex-col gap-8">
+                <h4 className="font-oswald text-3xl uppercase tracking-wide text-black border-b-2 border-black pb-4 inline-block w-fit pr-12">{category.title}</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
+                  {category.ideas.map((idea) => (
+                    <IdeaCard
+                      key={idea.id}
+                      idea={idea}
+                      onUpdate={(id, data) => handleUpdateIdea(category.id, id, data)}
+                      onDelete={(id) => handleDeleteIdea(category.id, id)}
+                    />
+                  ))}
+                  <div
+                    onClick={() => handleAddNewIdea(category.id)}
+                    className="h-full min-h-[200px] border border-dashed border-gray-300 rounded-[20px] flex flex-col items-center justify-center text-gray-400 hover:text-black hover:border-black hover:bg-gray-50 transition-all cursor-pointer group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-gray-50 group-hover:bg-gray-200 flex items-center justify-center mb-4 transition-colors">
+                        <span className="text-2xl font-light">+</span>
+                    </div>
+                    <span className="font-inter text-[11px] font-bold uppercase tracking-widest">New Idea</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      );
+    };
+
+    // =====================================
+    // LIVE ARCHIVE (Refined Database)
+    // =====================================
+    const LiveArchiveCard = ({ video, onDelete, onUpdate }) => {
+      const [isEditing, setIsEditing] = useState(false);
+      
+      const safeLinks = video.links || { ig: '', x: '', tiktok: '', youtube: '' };
+      const safeMetrics = video.metrics || { views: '', likes: '', comments: '', shares: '' };
+
+      const [formData, setFormData] = useState({
+        name: video.name || '',
+        caption: video.caption || '',
+        mediaUrl: video.mediaUrl || '',
+        links: { ...safeLinks },
+        metrics: { ...safeMetrics }
+      });
+
+      useEffect(() => {
+        if (!isEditing) {
+          setFormData({
+            name: video.name || '',
+            caption: video.caption || '',
+            mediaUrl: video.mediaUrl || '',
+            links: { ...(video.links || { ig: '', x: '', tiktok: '', youtube: '' }) },
+            metrics: { ...(video.metrics || { views: '', likes: '', comments: '', shares: '' }) }
+          });
+        }
+      }, [video, isEditing]);
+
+      const handleSave = () => {
+        onUpdate({ ...video, ...formData });
+        setIsEditing(false);
+      };
+
+      const updateLink = (platform, value) => {
+        setFormData(prev => ({ ...prev, links: { ...prev.links, [platform]: value } }));
+      };
+
+      const updateMetric = (metricName, value) => {
+        setFormData(prev => ({ ...prev, metrics: { ...prev.metrics, [metricName]: value } }));
+      };
+
+      const getIgEmbedUrl = (url) => {
+        try {
+          if (!url || !url.includes('instagram.com')) return null;
+          const match = url.match(/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+          // Using just /embed avoids the bulky caption on the left side
+          if (match) return `https://www.instagram.com/p/${match[1]}/embed`;
+          return null;
+        } catch {
+          return null;
+        }
+      };
+
+      const isVideoMedia = formData.mediaUrl && (formData.mediaUrl.includes('.mp4') || formData.mediaUrl.includes('.webm'));
+      const igEmbedUrl = getIgEmbedUrl(formData.links.ig);
+      const activeKeys = Object.keys(safeLinks).filter(k => safeLinks[k] && safeLinks[k].trim() !== '');
+      const platformMap = { ig: 'Instagram', tiktok: 'TikTok', x: 'X', youtube: 'YouTube' };
+
+      return (
+        <div className={`bg-gray-50 border border-gray-200 rounded-[24px] p-8 md:p-10 transition-all duration-500 relative ${isEditing ? 'shadow-xl bg-white' : 'hover:border-gray-300'}`}>
+          <div className="flex flex-col lg:flex-row gap-10 items-stretch">
+            
+            {/* LEFT SIDE: Media / Thumbnail */}
+            <div className="w-full lg:w-[350px] xl:w-[400px] shrink-0 flex flex-col gap-4">
+              <div className="w-full aspect-[4/5] bg-gray-200 rounded-[16px] overflow-hidden relative border border-gray-300 flex items-center justify-center group">
+                
+                {/* Media Logic: Priority 1: Custom Media URL, Priority 2: IG Embed */}
+                {formData.mediaUrl ? (
+                  isVideoMedia ? (
+                    <video src={formData.mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                  ) : (
+                    <img src={formData.mediaUrl} alt="Thumbnail" className="w-full h-full object-cover" />
+                  )
+                ) : igEmbedUrl ? (
+                  <iframe src={igEmbedUrl} width="100%" height="100%" frameBorder="0" scrolling="no" allowtransparency="true" className="w-full h-full" />
+                ) : (
+                  <div className="text-gray-400 flex flex-col items-center gap-3 p-6 text-center">
+                    <svg className="w-8 h-8 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>
+                    <span className="font-inter text-[10px] uppercase font-bold tracking-widest text-gray-500">No Media Provided</span>
+                  </div>
+                )}
+                
+                {isEditing && (
+                  <div className="absolute inset-0 bg-white/95 backdrop-blur-md p-6 flex flex-col items-center justify-center gap-4 transition-opacity z-10">
+                    <label className="font-inter text-[10px] uppercase text-gray-500 font-bold text-center">Custom Media Override</label>
+                    <input type="text" value={formData.mediaUrl} onChange={e => setFormData({...formData, mediaUrl: e.target.value})} placeholder="Paste .jpg or .mp4 link..." className="w-full bg-white border border-gray-300 rounded-lg p-3 text-xs font-inter text-black focus:outline-none focus:border-black text-center shadow-inner" />
+                    <p className="font-inter text-[9px] text-gray-500 text-center leading-relaxed">Paste a direct link to an image/video, OR leave blank to auto-embed the Instagram link.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* RIGHT SIDE: Title, Copy, Links, Metrics */}
+            <div className="flex-1 flex flex-col w-full h-full">
+              {isEditing ? (
+                <div className="w-full mb-6 flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="flex-1 w-full">
+                    <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Video Title</label>
+                    <input
+                      value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Enter Video Title..."
+                      className="font-oswald text-4xl uppercase tracking-tight bg-transparent border-b-2 border-black focus:outline-none w-full text-black placeholder:text-gray-300 pb-2"
+                    />
+                  </div>
+                  <button onClick={handleSave} className="shrink-0 font-inter text-[11px] font-bold uppercase tracking-widest bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 transition-colors sm:mt-6 w-full sm:w-auto">Save</button>
+                </div>
+              ) : (
+                <div className="mb-6 flex flex-col sm:flex-row justify-between items-start gap-4 border-b border-gray-200 pb-4">
+                  <div>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <span className="font-inter text-[10px] font-bold uppercase tracking-widest text-gray-500">Live Post Archive</span>
+                    </div>
+                    <h4 className="font-oswald text-4xl md:text-5xl uppercase tracking-tight text-black leading-none">{video.name}</h4>
+                  </div>
+                  <div className="flex gap-2 shrink-0 sm:mt-6">
+                    <button onClick={() => setIsEditing(true)} className="font-inter text-[10px] font-bold uppercase tracking-widest border border-gray-300 bg-white px-5 py-2 rounded-full hover:border-black transition-colors text-black shadow-sm">Edit</button>
+                    <button onClick={() => onDelete(video.firestoreId)} className="font-inter text-[10px] font-bold uppercase tracking-widest border border-red-200 text-red-500 w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 hover:border-red-500 transition-colors" title="Delete Video"><Trash2 className="w-3 h-3" /></button>
+                  </div>
+                </div>
+              )}
+
+              {/* Caption / Copy Section */}
+              {isEditing ? (
+                <div className="mb-8">
+                  <label className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Caption / Social Copy</label>
+                  <textarea
+                    value={formData.caption}
+                    onChange={e => setFormData({ ...formData, caption: e.target.value })}
+                    placeholder="Enter the caption used for this video..."
+                    rows="3"
+                    className="w-full bg-white border border-gray-200 rounded-xl p-4 text-sm font-inter text-black focus:outline-none focus:border-black shadow-inner resize-none"
+                  />
+                </div>
+              ) : (
+                <div className="mb-8">
+                  <h5 className="font-inter text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Video Caption / Copy</h5>
+                  <p className="font-inter text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {formData.caption || <span className="italic text-gray-400">No caption provided.</span>}
+                  </p>
+                </div>
+              )}
+
+              {/* View Mode: Platform Quick Links */}
+              {!isEditing && activeKeys.length > 0 && (
+                <div className="mb-8">
+                  <h5 className="font-inter text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-3">Live Links</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {safeLinks.ig && <a href={safeLinks.ig} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-full hover:border-black hover:shadow-sm transition-all group" title="Watch on Instagram"><Instagram className="w-4 h-4 text-black group-hover:scale-110 transition-transform" strokeWidth={2} /><span className="font-inter text-[10px] font-bold uppercase tracking-widest text-black">Instagram</span></a>}
+                    {safeLinks.tiktok && <a href={safeLinks.tiktok} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-full hover:border-black hover:shadow-sm transition-all group" title="Watch on TikTok"><TikTok className="w-4 h-4 text-black group-hover:scale-110 transition-transform" strokeWidth={2} /><span className="font-inter text-[10px] font-bold uppercase tracking-widest text-black">TikTok</span></a>}
+                    {safeLinks.x && <a href={safeLinks.x} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-full hover:border-black hover:shadow-sm transition-all group" title="View on X"><XIcon className="w-4 h-4 text-black group-hover:scale-110 transition-transform" strokeWidth={2} /><span className="font-inter text-[10px] font-bold uppercase tracking-widest text-black">X / Twitter</span></a>}
+                    {safeLinks.youtube && <a href={safeLinks.youtube} target="_blank" rel="noreferrer" className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-full hover:border-black hover:shadow-sm transition-all group" title="Watch on YouTube"><Youtube className="w-[18px] h-[18px] text-black group-hover:scale-110 transition-transform" strokeWidth={2} /><span className="font-inter text-[10px] font-bold uppercase tracking-widest text-black">YouTube</span></a>}
+                  </div>
+                </div>
+              )}
+
+              {/* Editing Mode: Links & Metrics Input Grids */}
+              {isEditing && (
+                <div className="flex flex-col gap-8 w-full animate-in fade-in">
+                  <div>
+                    <h5 className="font-inter text-[11px] font-bold uppercase tracking-widest text-black border-b border-gray-200 pb-2 mb-4">Social URLs</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {['ig', 'tiktok', 'x', 'youtube'].map(plat => (
+                        <div key={plat} className="flex flex-col gap-2">
+                          <label className="font-inter text-[10px] uppercase text-gray-500">{platformMap[plat]} Link</label>
+                          <input type="text" value={formData.links[plat]} onChange={e => updateLink(plat, e.target.value)} placeholder={`Paste ${platformMap[plat]} URL...`} className="bg-white border border-gray-200 rounded-lg p-3 text-sm font-inter text-black focus:outline-none focus:border-black shadow-inner" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h5 className="font-inter text-[11px] font-bold uppercase tracking-widest text-black border-b border-gray-200 pb-2 mb-4">Performance Metrics</h5>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {['views', 'likes', 'comments', 'shares'].map(metric => (
+                        <div key={metric} className="flex flex-col gap-2">
+                          <label className="font-inter text-[10px] uppercase text-gray-500">{metric}</label>
+                          <input type="text" value={formData.metrics[metric]} onChange={e => updateMetric(metric, e.target.value)} placeholder={`e.g. 1.2M`} className="bg-white border border-gray-200 rounded-lg p-3 text-sm font-inter text-black focus:outline-none focus:border-black font-medium shadow-inner" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* View Mode: Metrics Readouts */}
+              {!isEditing && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-6 bg-white border border-gray-200 rounded-[20px] p-6 shadow-sm mt-auto">
+                  <div className="flex flex-col">
+                    <span className="font-inter text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Views</span>
+                    <span className="font-oswald text-3xl md:text-4xl text-black leading-none">{safeMetrics.views || '--'}</span>
+                  </div>
+                  <div className="flex flex-col border-l border-gray-100 pl-4 md:border-l-0 md:pl-0">
+                    <span className="font-inter text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Likes</span>
+                    <span className="font-oswald text-3xl md:text-4xl text-black leading-none">{safeMetrics.likes || '--'}</span>
+                  </div>
+                  <div className="flex flex-col md:border-l border-gray-100 md:pl-4">
+                    <span className="font-inter text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Comments</span>
+                    <span className="font-oswald text-3xl md:text-4xl text-black leading-none">{safeMetrics.comments || '--'}</span>
+                  </div>
+                  <div className="flex flex-col border-l border-gray-100 pl-4">
+                    <span className="font-inter text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Shares</span>
+                    <span className="font-oswald text-3xl md:text-4xl text-black leading-none">{safeMetrics.shares || '--'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const LiveArchive = ({ user }) => {
+      const [videos, setVideos] = useState([]);
+
+      useEffect(() => {
+        if (!user) return;
+        const videosRef = db.collection('artifacts/' + globalAppId + '/public/data/videos');
+        
+        const unsubscribe = videosRef.onSnapshot((snapshot) => {
+          if (snapshot.empty) {
+            // New default based on your provided Instagram reel
+            const defaultVideo = {
+              name: 'Joy Crookes - GOAT FIFA SONG',
+              caption: 'We challenged Joy Crookes to decide the GOAT EA FC song.\n\nGet your tickets to ‘Juniper Tour’ now.',
+              mediaUrl: '',
+              links: { ig: 'https://www.instagram.com/reel/DQkK5JIjrvb/', tiktok: '', x: '', youtube: '' },
+              metrics: { views: '', likes: '', comments: '', shares: '' },
+              createdAt: Date.now()
+            };
+            videosRef.add(defaultVideo).catch(console.error);
+          } else {
+            const fetchedVideos = [];
+            snapshot.forEach(d => fetchedVideos.push({ firestoreId: d.id, ...d.data() }));
+            fetchedVideos.sort((a, b) => b.createdAt - a.createdAt);
+            setVideos(fetchedVideos);
+          }
+        }, (error) => {
+          console.error("Firestore Videos Sync Error:", error);
+        });
+
+        return () => unsubscribe();
+      }, [user]);
+
+      const handleAddVideo = async () => {
+        const newVideo = {
+          name: 'New Release — ' + new Date().toLocaleDateString(),
+          caption: '',
+          mediaUrl: '',
+          links: { ig: '', tiktok: '', x: '', youtube: '' },
+          metrics: { views: '', likes: '', comments: '', shares: '' },
+          createdAt: Date.now()
+        };
+        try {
+          await db.collection('artifacts/' + globalAppId + '/public/data/videos').add(newVideo);
+        } catch (err) {
+          console.error("Failed to add video", err);
+        }
+      };
+
+      const handleDeleteVideo = async (firestoreId) => {
+        try {
+          await db.collection('artifacts/' + globalAppId + '/public/data/videos').doc(firestoreId).delete();
+        } catch (err) {
+          console.error("Failed to delete video", err);
+        }
+      };
+
+      const handleUpdateVideo = async (updatedVideo) => {
+        const { firestoreId, ...data } = updatedVideo;
+        try {
+          await db.collection('artifacts/' + globalAppId + '/public/data/videos').doc(firestoreId).update(data);
+        } catch (err) {
+          console.error("Failed to update video", err);
+        }
+      };
+
+      return (
+        <section id="links" className="py-24 px-6 md:px-12 max-w-[1600px] mx-auto min-h-screen bg-white">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-16 border-b-2 border-black pb-8 gap-6">
+            <div>
+              <p className="font-inter text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Published Works</p>
+              <h3 className="font-oswald text-6xl md:text-[8rem] uppercase text-black leading-[0.85] tracking-tight">Live Archive</h3>
+            </div>
+            <Magnetic>
+              <button
+                onClick={handleAddVideo}
+                className="flex items-center gap-2 bg-black text-white px-8 py-4 rounded-full text-[11px] font-inter font-bold uppercase tracking-widest hover:bg-gray-800 transition-colors focus:outline-none mb-2"
+              >
+                + Archive New Video
+              </button>
+            </Magnetic>
+          </div>
+
+          <div className="flex flex-col gap-12">
+            {videos.map((video) => (
+              <LiveArchiveCard
+                key={video.firestoreId}
+                video={video}
+                onDelete={handleDeleteVideo}
+                onUpdate={handleUpdateVideo}
+              />
+            ))}
+            {videos.length === 0 && (
+              <div className="w-full py-24 border border-dashed border-gray-300 rounded-[24px] flex flex-col items-center justify-center text-gray-500 bg-gray-50">
+                <p className="font-inter text-[11px] font-bold uppercase tracking-widest">No Archived Links. Start adding your live videos above.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      );
+    };
+
+    const Footer = () => {
+      return (
+        <footer className="bg-black pt-24 pb-12 px-6 text-white border-t border-black">
+          <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-end gap-12">
+            <div>
+              <h2 className="font-oswald text-8xl md:text-[10rem] uppercase leading-[0.8] tracking-tight mb-6">VERSUS</h2>
+              <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-full py-2 px-5 w-fit">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="font-inter text-[10px] uppercase font-bold tracking-widest text-white/90">System Operational</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-6">
+              <a href="https://x.com/vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><XIcon className="w-5 h-5 text-white" strokeWidth={1.5} /></a>
+              <a href="https://www.instagram.com/versus/" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><Instagram className="w-5 h-5 text-white" strokeWidth={1.5} /></a>
+              <a href="https://www.tiktok.com/@vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity">
+                <TikTok className="w-5 h-5 text-white" strokeWidth={1.5} />
+              </a>
+              <a href="https://www.youtube.com/@vsrsus" target="_blank" rel="noreferrer" className="hover:opacity-70 transition-opacity"><Youtube className="w-[22px] h-[22px] text-white" strokeWidth={1.5} /></a>
+            </div>
+          </div>
+        </footer>
+      );
+    };
+
+    function App() {
+      const [user, setUser] = useState(null);
+
+      useEffect(() => {
+        const initAuth = async () => {
+          try {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+              await auth.signInWithCustomToken(__initial_auth_token);
+            } else {
+              await auth.signInAnonymously();
+            }
+          } catch (error) {
+            console.error("Authentication Error:", error);
+          }
+        };
+        initAuth();
+
+        const unsubscribe = auth.onAuthStateChanged(setUser);
+        return () => unsubscribe();
+      }, []);
+
+      return (
+        <main className="min-h-screen bg-white relative selection:bg-black selection:text-white">
+          <Navbar />
+          <Hero />
+          <IdeationEngine user={user} />
+          <LiveArchive user={user} />
+          <Footer />
+        </main>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
